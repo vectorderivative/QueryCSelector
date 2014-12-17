@@ -23,5 +23,8 @@ QuerySelector QS = New QuerySelector();
 
 `Attr` gets or sets attributes.
 
+`Render` ToString method.
+
 #### Additional info
-This is just an alpha proof of concept to get simple things done quick (get node values and attributes)
+This is just an alpha proof of concept to get simple things done quick (get/set node values and attributes)
+Namespaces are ignored
