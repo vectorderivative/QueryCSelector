@@ -27,4 +27,5 @@ QuerySelector QS = New QuerySelector();
 
 #### Additional info
 This is just an alpha proof of concept to get simple things done quick (get/set node values and attributes)
+
 Namespaces are ignored
