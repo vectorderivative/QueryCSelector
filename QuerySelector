@@ -1,0 +1,240 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Xml.Linq;
+using System.Xml.XPath;
+using System.Text;
+
+using System.Diagnostics;
+
+    public class QuerySelector
+    {
+        private XElement x;
+        private IEnumerable<XElement> xs;
+
+        public QuerySelector Create(string code)
+        {
+            try
+            {
+                x = XElement.Parse(code, LoadOptions.None);
+
+                Debug.WriteLine("Cargado cadena " + code);
+            }
+            catch (System.Xml.XmlException e)
+            {
+                Debug.WriteLine(e.Message);
+            }
+            
+            return this;
+        }
+
+        public QuerySelector Create(XElement el)
+        {
+            x = el;
+            return this;
+        }
+
+        public QuerySelector Create(IEnumerable<XElement> els)
+        {
+            xs = els;
+            return this;
+        }
+
+        public QuerySelector CreateFromFile(string url)
+        {
+            try
+            {
+                x = XElement.Load(url);
+
+                Debug.WriteLine("Cargado QS de archivo " + url);
+            }
+            catch (System.Xml.XmlException e)
+            {
+                Debug.WriteLine(e.Message);
+            }
+            
+            return this;
+        }
+
+        public QuerySelector GetElement(int i)
+        {
+            QuerySelector QS = new QuerySelector();
+            if (xs != null) {
+                QS.Create(xs.ElementAt<XElement>(i));
+            }
+            else
+            {
+                QS.Create(x);
+            }
+            return QS; 
+
+            /*if (xs != null)
+            {
+                this.x = xs.ElementAt<XElement>(i);
+            }
+
+            return this;*/
+        }
+
+        public QuerySelector GetElement()
+        {
+            QuerySelector QS = new QuerySelector();
+
+            if (x != null)
+            {
+                QS.Create(x);
+            }
+            else
+            {
+                QS.Create(xs.First<XElement>());
+            }
+            return QS;
+            /*if (x == null && xs != null)
+            {
+                this.x = xs.First<XElement>();
+            }
+
+            return this;*/
+        }
+
+        public int Length()
+        {
+            int i = 0;
+            if (xs != null)
+            {
+                foreach (XElement item in xs)
+                {
+                    i++;
+                }
+            }
+            if (x != null)
+            {
+                i = 1;
+            }
+
+            return i;
+        }
+
+        public QuerySelector Select(String selector)
+        {
+            StringBuilder newSelector = new StringBuilder();
+            QuerySelector QS = new QuerySelector();
+
+            /*Eliminar la necesidad de especificar namespaces en el selector*/
+            if (selector.IndexOf("/") > 0)
+            {
+                var selectors = selector.Split('/');
+
+                for (int i = 0; i < selectors.Length; i++)
+                {
+                    if (i == 0)
+                    {
+                        newSelector.Append("//*[local-name()='").Append(selectors[i]).Append("']");
+                    }
+                    else
+                    {
+                        newSelector.Append("/*[local-name()='").Append(selectors[i]).Append("']");
+                    }
+                }
+                foreach (var item in selectors)
+                {
+                    newSelector.Append("");
+                }
+            }
+            else
+            {
+                newSelector.Append("//*[local-name()='").Append(selector).Append("']");
+            }
+
+            if (x != null)
+            {
+                //this.xs = x.XPathSelectElements(newSelector.ToString());
+                QS.Create(x.XPathSelectElements(newSelector.ToString()));
+            }
+            else
+            {
+                //this.xs = xs.First<XElement>().XPathSelectElements(newSelector.ToString());
+                QS.Create(xs.First<XElement>().XPathSelectElements(newSelector.ToString()));
+            }
+
+            return QS;
+            //return this;
+        }
+
+        public string Text()
+        {
+            string value = "";
+
+            if (xs != null)
+            {
+                value = xs.First<XElement>().Value;
+            }
+            else
+            {
+                value = x.Value;
+            }
+
+            if (value == null)
+            {
+                value = " ";
+                Debug.WriteLine("El elemento no tiene contenido o no se pudo obtener");
+            }
+
+            return value;
+        }
+
+        public QuerySelector Text(string text)
+        {
+            if (xs != null)
+            {
+                xs.First<XElement>().SetValue(text);
+            }
+            else
+            {
+                x.SetValue(text);
+            }
+
+            return this;
+        }
+
+        public Dictionary<string,string> Attr()
+        {
+            IEnumerable<XAttribute> attributes;
+            Dictionary<string,string> attributesDict = new Dictionary<string, string>();
+
+            if (xs != null)
+            {
+                attributes = xs.First<XElement>().Attributes();
+            }
+            else
+            {
+                attributes = x.Attributes();
+            }
+
+            foreach (var item in attributes)
+            {
+                attributesDict.Add(item.Name.ToString(), item.Value.ToString());
+            }
+
+            return attributesDict;
+        }
+
+        public QuerySelector Attr(string attibute, string value)
+        {
+            if (xs != null)
+            {
+                xs.First<XElement>().SetAttributeValue(attibute, value);
+            }
+            else
+            {
+                x.SetAttributeValue(attibute, value);
+            }
+
+            return this;
+        }
+
+        public string Render()
+        {
+            return this.x.ToString();
+        }
+    }
