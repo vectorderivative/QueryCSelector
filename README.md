@@ -11,11 +11,16 @@ QuerySelector QS = New QuerySelector();
   Console.WriteLine(QS.Render());
 ```
 #### Methods
-`Create` loads the XML string, XElement or XElements object
+`Create` loads the XML string, XElement or XElements object.
+
 `Select` executes an XPath expression to query the document.
-`GetElement(i)` gets the QuerySelector object for the i node from a collection of nodes result of a previous selection
-`Length` gets the number of nodes resulting from a selection
-`Text` same as JQuery function
+
+`GetElement(i)` gets the QuerySelector object for the i node from a collection of nodes result of a previous selection.
+
+`Length` gets the number of nodes resulting from a selection.
+
+`Text` same as JQuery function.
+
 `Attr` gets or sets attributes.
 
 #### Additional info
