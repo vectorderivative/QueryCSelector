@@ -1,7 +1,7 @@
 QueryCSelector
 ==============
 
-Simple implementation for a querySelector function for XML documents.
+Simple C# implementation for a querySelector JQuery-ish function for XML documents.
 
 ```C#
 QuerySelector QS = New QuerySelector();
