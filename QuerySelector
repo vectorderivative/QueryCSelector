@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using System.Diagnostics;
+using System.Security;
 
 namespace XML2DB
 {
@@ -30,7 +31,7 @@ namespace XML2DB
         {
             try
             {
-                x = XElement.Parse(code, LoadOptions.None);
+                this.x = XElement.Parse(code, LoadOptions.None);
 
                 Debug.WriteLine("Cargado cadena " + code);
             }
@@ -52,7 +53,7 @@ namespace XML2DB
         /// <returns>Referencia a si mismo</returns>
         public QuerySelector Create(XElement el)
         {
-            x = el;
+            this.x = el;
             return this;
         }
 
@@ -63,7 +64,13 @@ namespace XML2DB
         /// <returns>Referencia a si mismo</returns>
         public QuerySelector Create(IEnumerable<XElement> els)
         {
-            xs = els;
+            this.xs = els;
+            return this;
+        }
+
+        public QuerySelector Create(QuerySelector qs)
+        {
+            this.x = qs.GetXElement();
             return this;
         }
 
@@ -76,7 +83,7 @@ namespace XML2DB
         {
             try
             {
-                x = XElement.Load(url);
+                this.x = XElement.Load(url);
 
                 Debug.WriteLine("Cargado QS de archivo " + url);
             }
@@ -97,12 +104,12 @@ namespace XML2DB
         public QuerySelector GetElement(int i)
         {
             QuerySelector QS = new QuerySelector();
-            if (xs != null) {
-                QS.Create(xs.ElementAt<XElement>(i));
+            if (this.xs != null) {
+                QS.Create(this.xs.ElementAt<XElement>(i));
             }
             else
             {
-                QS.Create(x);
+                QS.Create(this.x);
             }
             return QS; 
 
@@ -122,13 +129,13 @@ namespace XML2DB
         {
             QuerySelector QS = new QuerySelector();
 
-            if (x != null)
+            if (this.x != null)
             {
-                QS.Create(x);
+                QS.Create(this.x);
             }
             else
             {
-                QS.Create(xs.First<XElement>());
+                QS.Create(this.xs.First<XElement>());
             }
             return QS;
             /*if (x == null && xs != null)
@@ -140,20 +147,53 @@ namespace XML2DB
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public XElement GetXElement()
+        {
+            if (this.xs != null)
+            {
+                return this.xs.First<XElement>();
+            }
+            else
+            {
+                return this.x;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="i"></param>
+        /// <returns></returns>
+        public XElement GetXElement(int i)
+        {
+            if (this.xs != null)
+            {
+                return this.xs.ElementAt<XElement>(i);
+            }
+            else
+            {
+                return this.x;
+            }
+        }
+
+        /// <summary>
         /// Regresa el número de nodos que fueron encontrados en la selección
         /// </summary>
         /// <returns>int length</returns>
         public int Length()
         {
             int i = 0;
-            if (xs != null)
+            if (this.xs != null)
             {
-                foreach (XElement item in xs)
+                foreach (XElement item in this.xs)
                 {
                     i++;
                 }
             }
-            if (x != null)
+            if (this.x != null)
             {
                 i = 1;
             }
@@ -208,15 +248,15 @@ namespace XML2DB
                 //this.xs = x.XPathSelectElements(newSelector.ToString());
 
                 //Se crea un nuevo objeto con la selección hecha sobre "x" que contiene el XML cargado
-                var selectedNode = x.XPathSelectElements(newSelector.ToString());
+                var selectedNode = this.x.XPathSelectElements(newSelector.ToString());
                 
                 //En la especificación XML el elemento raíz no cuenta como un nodo. Si se busca el nodo, este no existe.
                 //Se debe buscar con una expresión XPath que se refiera a la raíz (/), en el caso de raíz sin namespace
                 //se utiliza la expresión local-name(/)
                 if (selectedNode.Count() == 0 ) {
-                    if (selector.Equals(x.XPathEvaluate("local-name(/)")))
+                    if (selector.Equals(this.x.XPathEvaluate("local-name(/)")))
                     {
-                        selectedNode = x.XPathSelectElements("/");
+                        selectedNode = this.x.XPathSelectElements("/");
                     }
                 }
 
@@ -226,12 +266,12 @@ namespace XML2DB
             {
                 //this.xs = xs.First<XElement>().XPathSelectElements(newSelector.ToString());
                 //Si la selección se intenta hacer sobre una colección de XMLs, que solamente se haga con el primer elemento.
-                var selectedNode = xs.First<XElement>().XPathSelectElements(newSelector.ToString());
+                var selectedNode = this.xs.First<XElement>().XPathSelectElements(newSelector.ToString());
 
                 if (selectedNode.Count() == 0) {
-                    if (selector.Equals(xs.First<XElement>().XPathEvaluate("local-name(/*)")))
+                    if (selector.Equals(this.xs.First<XElement>().XPathEvaluate("local-name(/*)")))
                     {
-                        selectedNode = x.XPathSelectElements("/");
+                        selectedNode = this.x.XPathSelectElements("/");
                     }
                 }
 
@@ -250,10 +290,10 @@ namespace XML2DB
         {
             string value = "";
 
-            if (xs != null)
+            if (this.xs != null)
             {
                 try {
-                    value = xs.FirstOrDefault<XElement>().Nodes().OfType<XText>().First().Value;
+                    value = this.xs.FirstOrDefault<XElement>().Nodes().OfType<XText>().First().Value;
                 }
                 catch(Exception e)
                 {
@@ -263,7 +303,7 @@ namespace XML2DB
             }
             else
             {
-                value = x.Nodes().OfType<XText>().First().Value;
+                value = this.x.Nodes().OfType<XText>().First().Value;
             }
 
             /*if (value == null)
@@ -296,27 +336,52 @@ namespace XML2DB
         }
 
         /// <summary>
-        /// Asigna una valor al nodo seleccionado por <code>Select</code>
+        /// Asigna un valor al nodo seleccionado por <code>Select</code>
         /// </summary>
         /// <param name="text">String valor</param>
         /// <returns>Referencia a si mismo</returns>
         public QuerySelector Text(string text)
         {
-            if (xs != null)
+            text = SecurityElement.Escape(text);
+
+            if (this.xs != null)
             {
-                //try
-                //{
-                    xs.First<XElement>().SetValue(text);
-                //}
-                /*catch (Exception e)
+                try
                 {
-                    x.SetValue(text);
+                    this.xs.First<XElement>().SetValue(text);
+                }
+                catch (Exception e)
+                {
+                    //x.SetValue(text);
                     Debug.WriteLine("Asignar texto exception: " + e.Message);
-                }*/
+                }
             }
             else
             {
-                x.SetValue(text);
+                this.x.SetValue(text);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Asigna un valor a todos los nodos seleccionados por <code>Select</code>
+        /// </summary>
+        /// <param name="text">String valor</param>
+        /// <returns>Referencia a si mismo</returns>
+        public QuerySelector TextAll(string text)
+        {
+            text = SecurityElement.Escape(text);
+            if (this.xs != null)
+            {
+                foreach (var item in this.xs)
+                {
+                    item.SetValue(text);
+                }
+            }
+            else
+            {
+                this.x.SetValue(text);
             }
 
             return this;
@@ -332,13 +397,13 @@ namespace XML2DB
             Dictionary<string,string> attributesDict = new Dictionary<string, string>();
 
             //Obtiene los atributos, ya sea un solo XML o una colección, en caso de que sea colección sólo toma el primer elemento
-            if (xs != null)
+            if (this.xs != null)
             {
-                attributes = xs.First<XElement>().Attributes();
+                attributes = this.xs.First<XElement>().Attributes();
             }
             else
             {
-                attributes = x.Attributes();
+                attributes = this.x.Attributes();
             }
 
             foreach (var item in attributes)
@@ -357,21 +422,42 @@ namespace XML2DB
         /// <returns>Referencia a si mismo</returns>
         public QuerySelector Attr(string attibute, string value)
         {
-            if (xs != null)
+            value = SecurityElement.Escape(value);
+
+            if (this.xs != null)
             {
-                xs.First<XElement>().SetAttributeValue(attibute, value);
+                this.xs.First<XElement>().SetAttributeValue(attibute, value);
             }
             else
             {
-                x.SetAttributeValue(attibute, value);
+                this.x.SetAttributeValue(attibute, value);
             }
 
             return this;
         }
 
-        public bool Contains(string element)
+        public QuerySelector AttrAll(string attribute, string value)
         {
-            /*if (xs != null)
+            value = SecurityElement.Escape(value);
+
+            if (this.xs != null)
+            {
+                foreach (var item in this.xs)
+                {
+                    item.SetAttributeValue(attribute, value);
+                }
+            }
+            else
+            {
+                this.x.SetAttributeValue(attribute, value);
+            }
+
+            return this;
+        }
+
+        /*public bool Contains(string element)
+        {
+            if (xs != null)
             {
                 return xs.Elements<XElement>(element).Any<XElement>();
             }
@@ -379,17 +465,410 @@ namespace XML2DB
             {
                 //return x.Descendants(element).Any();
                 return x.Elements(element).Any();
-            }*/
-            return true;
+            }
+        }*/
+
+        /// <summary>
+        /// Agrega un nodo hijo al final del nodo resultado de un Select
+        /// </summary>
+        /// <param name="node">Nombre del nodo a insertar, puede contener un namespace</param>
+        /// <param name="content">Opcional</param>
+        /// <remarks>a <code>node</code> se le puede enviar una cadena como <code>ns:nodeName</code>, en caso de que el namespace específicado no existe en el documento se procederá a agregar el atributo quedando como <code>nodemane xlmns="ns"</code></remarks>
+        /// <returns>QuerySelector</returns>
+        public QuerySelector Append(string node, string content = "")
+        {
+            content = SecurityElement.Escape(content);
+
+            XNamespace nodeNamespace;
+            string nodeNamespaceString = "";
+            string nodeName = "";
+            XName newNode;
+            bool hasNamespace = false;
+
+            if (node.IndexOf(':') > 0)
+            {
+                hasNamespace = true;
+                nodeNamespace = nodeNamespaceString = node.Split(':')[0];
+                nodeName = node.Split(':')[1];
+                newNode = nodeNamespace + nodeName;
+            }
+            else if (node.IndexOf(':') == -1)
+            {
+                newNode = node;
+            }
+            else
+            {
+                Debug.WriteLine("El nombre del nodo y namespace está mal formado");
+                return this;
+            }
+
+            if (this.xs != null)
+            {
+                foreach (var item in this.xs)
+                {
+                    if (hasNamespace) {
+                        if (!String.IsNullOrEmpty(item.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName.ToString()))
+                        {
+                            nodeNamespace = item.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName;
+                            newNode = nodeNamespace + nodeName;
+                        }
+                    }
+                    item.Add(new XElement(newNode, content));
+                }
+            }
+            else
+            {
+                if (hasNamespace) {
+                    if (!String.IsNullOrEmpty(this.x.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName.ToString()))
+                    {
+                        newNode = this.x.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName + nodeName;
+                    }
+                }
+                x.Add(new XElement(newNode, content));
+            }
+
+            return this;
         }
 
         /// <summary>
+        /// Agrega un nodo hijo al final del nodo resultado de un Select
+        /// </summary>
+        /// <param name="qs"></param>
+        /// <returns></returns>
+        public QuerySelector Append(QuerySelector qs)
+        {
+            if (this.xs != null)
+            {
+                foreach (var item in this.xs)
+                {
+                    item.Add(qs.GetXElement());
+                }
+            }
+            else
+            {
+                this.x.Add(qs.GetXElement());
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Agrega un nodo hijo al principio del nodo resultado de un Select
+        /// </summary>
+        /// <param name="node">Nombre del nodo a insertar, puede contener un namespace</param>
+        /// <param name="content">Opcional</param>
+        /// <remarks>a <code>node</code> se le puede enviar una cadena como <code>ns:nodeName</code>, en caso de que el namespace específicado no existe en el documento se procederá a agregar el atributo quedando como <code>nodemane xlmns="ns"</code></remarks>
+        /// <returns>QuerySelector</returns>
+        public QuerySelector Prepend(string node, string content = "")
+        {
+            content = SecurityElement.Escape(content);
+
+            XNamespace nodeNamespace;
+            string nodeNamespaceString = "";
+            string nodeName = "";
+            XName newNode;
+            bool hasNamespace = false;
+
+            if (node.IndexOf(':') > 0)
+            {
+                hasNamespace = true;
+                nodeNamespace = nodeNamespaceString = node.Split(':')[0];
+                nodeName = node.Split(':')[1];
+                newNode = nodeNamespace + nodeName;
+            }
+            else if (node.IndexOf(':') == -1)
+            {
+                newNode = node;
+            }
+            else
+            {
+                Debug.WriteLine("El nombre del nodo y namespace está mal formado");
+                return this;
+            }
+
+            if (xs != null)
+            {
+                foreach (var item in this.xs)
+                {
+                    if (hasNamespace)
+                    {
+                        if (!String.IsNullOrEmpty(item.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName.ToString()))
+                        {
+                            nodeNamespace = item.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName;
+                            newNode = nodeNamespace + nodeName;
+                        }
+                    }
+                    item.AddFirst(new XElement(newNode, content));
+                }
+            }
+            else
+            {
+                if (hasNamespace)
+                {
+                    if (!String.IsNullOrEmpty(this.x.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName.ToString()))
+                    {
+                        newNode = this.x.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName + nodeName;
+                    }
+                }
+                this.x.AddFirst(new XElement(newNode, content));
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Agrega un nodo hijo al principio del nodo resultado de un Select
+        /// </summary>
+        /// <param name="qs"></param>
+        /// <returns></returns>
+        public QuerySelector Prepend(QuerySelector qs)
+        {
+            if (this.xs != null)
+            {
+                foreach (var item in this.xs)
+                {
+                    item.AddFirst(qs.GetXElement());
+                }
+            }
+            else
+            {
+                this.x.AddFirst(qs.GetXElement());
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Agrega un nodo hermano después del nodo resultado de un Select
+        /// </summary>
+        /// <param name="node">Nombre del nodo a insertar, puede contener un namespace</param>
+        /// <param name="content">Opcional</param>
+        /// <remarks>a <code>node</code> se le puede enviar una cadena como <code>ns:nodeName</code>, en caso de que el namespace específicado no existe en el documento se procederá a agregar el atributo quedando como <code>nodemane xlmns="ns"</code></remarks>
+        /// <returns>QuerySelector</returns>
+        public QuerySelector After(string node, string content = "")
+        {
+            content = SecurityElement.Escape(content);
+
+            XNamespace nodeNamespace;
+            string nodeNamespaceString = "";
+            string nodeName = "";
+            XName newNode;
+            bool hasNamespace = false;
+
+            if (node.IndexOf(':') > 0)
+            {
+                hasNamespace = true;
+                nodeNamespace = nodeNamespaceString = node.Split(':')[0];
+                nodeName = node.Split(':')[1];
+                newNode = nodeNamespace + nodeName;
+            }
+            else if (node.IndexOf(':') == -1)
+            {
+                newNode = node;
+            }
+            else
+            {
+                Debug.WriteLine("El nombre del nodo y namespace está mal formado");
+                return this;
+            }
+
+            if (this.xs != null)
+            {
+                foreach (var item in this.xs)
+                {
+                    if (hasNamespace)
+                    {
+                        if (!String.IsNullOrEmpty(item.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName.ToString()))
+                        {
+                            nodeNamespace = item.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName;
+                            newNode = nodeNamespace + nodeName;
+                        }
+                    }
+                    item.AddAfterSelf(new XElement(newNode, content));
+                }
+            }
+            else
+            {
+                if (hasNamespace)
+                {
+                    if (!String.IsNullOrEmpty(this.x.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName.ToString()))
+                    {
+                        newNode = this.x.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName + nodeName;
+                    }
+                }
+                this.x.AddAfterSelf(new XElement(newNode, content));
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Agrega un nodo hermano después del nodo resultado de un Select
+        /// </summary>
+        /// <param name="qs"></param>
+        /// <returns></returns>
+        public QuerySelector After(QuerySelector qs)
+        {
+            if (this.xs != null)
+            {
+                foreach (var item in this.xs)
+                {
+                    item.AddAfterSelf(qs.GetXElement());
+                }
+            }
+            else
+            {
+                this.x.AddAfterSelf(qs.GetXElement());
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Agrega un nodo hermano antes al nodo resultado de un Select
+        /// </summary>
+        /// <param name="node">Nombre del nodo a insertar, puede contener un namespace</param>
+        /// <param name="content">Opcional</param>
+        /// <remarks>a <code>node</code> se le puede enviar una cadena como <code>ns:nodeName</code>, en caso de que el namespace específicado no existe en el documento se procederá a agregar el atributo quedando como <code>nodemane xlmns="ns"</code></remarks>
+        /// <returns>QuerySelector</returns>
+        public QuerySelector Before(string node, string content = "")
+        {
+            content = SecurityElement.Escape(content);
+
+            XNamespace nodeNamespace;
+            string nodeNamespaceString = "";
+            string nodeName = "";
+            XName newNode;
+            bool hasNamespace = false;
+
+            if (node.IndexOf(':') > 0)
+            {
+                hasNamespace = true;
+                nodeNamespace = nodeNamespaceString = node.Split(':')[0];
+                nodeName = node.Split(':')[1];
+                newNode = nodeNamespace + nodeName;
+            }
+            else if (node.IndexOf(':') == -1)
+            {
+                newNode = node;
+            }
+            else
+            {
+                Debug.WriteLine("El nombre del nodo y namespace está mal formado");
+                return this;
+            }
+
+            if (this.xs != null)
+            {
+                foreach (var item in this.xs)
+                {
+                    if (hasNamespace)
+                    {
+                        if (!String.IsNullOrEmpty(item.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName.ToString()))
+                        {
+                            nodeNamespace = item.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName;
+                            newNode = nodeNamespace + nodeName;
+                        }
+                    }
+                    item.AddBeforeSelf(new XElement(newNode, content));
+                }
+            }
+            else
+            {
+                if (hasNamespace)
+                {
+                    if (!String.IsNullOrEmpty(this.x.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName.ToString()))
+                    {
+                        newNode = this.x.GetNamespaceOfPrefix(nodeNamespaceString).NamespaceName + nodeName;
+                    }
+                }
+                this.x.AddBeforeSelf(new XElement(newNode, content));
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Agrega un nodo hermano antes al nodo resultado de un Select
+        /// </summary>
+        /// <param name="qs"></param>
+        /// <returns></returns>
+        public QuerySelector Before(QuerySelector qs)
+        {
+            if (this.xs != null)
+            {
+                foreach (var item in this.xs)
+                {
+                    item.AddBeforeSelf(qs.GetXElement());
+                }
+            }
+            else
+            {
+                this.x.AddBeforeSelf(qs.GetXElement());
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Elimina nodo
+        /// </summary>
+        /// <returns></returns>
+        public QuerySelector Remove()
+        {
+            if (this.xs != null)
+            {
+                foreach (var item in this.xs)
+                {
+                    item.Remove();
+                }
+            }
+            else
+            {
+                this.x.Remove();
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Elimina el contenido de un nodo, dejando su elemento vacío.
+        /// </summary>
+        /// <returns></returns>
+        public QuerySelector Clear()
+        {
+            if (this.xs != null)
+            {
+                foreach (var item in this.xs)
+                {
+                    item.RemoveAll();
+                }
+            }
+            else
+            {
+                this.x.RemoveAll();
+            }
+
+            return this;
+        }
+
+
+        ///TODO: Retorno de xs
+        /// <summary>
         /// Retorna el XML resultante
         /// </summary>
+        /// <remarks>Alias de ToString</remarks>
         /// <returns>String XML</returns>
         public string Render()
         {
-            return this.x.ToString();
+            if (this.xs != null)
+            {
+                return this.xs.ToString();
+            }
+            else
+            {
+                return this.x.ToString();
+            }
         }
 
     }
